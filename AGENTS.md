@@ -67,10 +67,13 @@ graph TD
 
 ### 2. Tuning and Optimizing Inference
 Inference execution logic lives in [api/inference_service.py](file:///C:/Users/muram/Desktop/MuseTalk-API/api/inference_service.py).
-*   **Preprocessing Caching**: Preprocessing results are keyed using MD5 hashing on input video/image files. Pre-computed face coordinates, latents, masks, and crop boxes are retrieved on subsequent runs. **Ensure any tensors loaded from this cache are explicitly aligned to the model's device (`self.device`) before running UNet.**
+*   **Preprocessing Caching**: To minimize Time to First Frame, preprocessing results are cached under `models/cache/` using the MD5 checksum of the source video/image file:
+    *   **First Run (Cache Miss)**: The server computes the MD5 hash and runs the heavy preprocessing pipeline: **DWPose** (facial landmark tracking), **FaceAlignment/FaceParsing** (bounding box and blending mask calculation), and **VAE Encoder** (generating cropped face latents). These coordinates, latents, and masks are then serialized and cached (taking ~20–30s).
+    *   **Subsequent Runs (Cache Hit)**: The server loads the preprocessed data from disk in milliseconds, completely skipping landmark tracking, mask creation, and VAE encoding. This drops startup latency to under 5 seconds.
+    *   **Developer Rule**: When loading VAE latents from this cache, the retrieved CPU tensors must be explicitly moved to the GPU device and dtype (`latent_batch.to(device=self.device, dtype=self.weight_dtype)`) before running the UNet forward pass to prevent device mismatch errors.
 *   **Direct FFMPEG Piping**: Raw BGR frames are fed directly to FFMPEG's stdin pipe. Avoid writing intermediate images to disk to save local storage and bypass slow file I/O operations.
 *   **Streaming generator (`_generate_frames()`)**: If extending the blending loop or adding frame filters, modify the generator to yield frames on the fly to support streaming.
-*   **Batch Size (`batch_size`)**: Control the number of frames passed to UNet concurrently. Larger batch sizes use more VRAM but execute faster. Default is `8`.
+*   **Batch Size (`batch_size`)**: Control the number of frames passed to UNet concurrently. Larger batch sizes use more VRAM but execute faster. Default is `1`.
 *   **Precision (`use_float16`)**: When instantiated, `MuseTalkInference` defaults to FP16 precision for VAE, UNet, and Whisper. Ensure tensors are cast to `self.weight_dtype` before calling models.
 *   **Optimized GFPGAN**: In `_enhance_face_aligned()`, GFPGAN is run in `has_aligned=True` mode, which skips face detection entirely since MuseTalk has already localized the face. If you edit face enhancement, preserve this flag to keep the ~1.8x speedup.
 
