@@ -243,6 +243,111 @@ async def generate_video_json(request: InferenceRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/generate/stream")
+async def generate_video_stream(
+    source: UploadFile = File(..., description="Source image or video file"),
+    audio: UploadFile = File(..., description="Driving audio file"),
+    enhance: bool = Form(False, description="Apply GFPGAN face enhancement"),
+    bbox_shift: int = Form(0),
+    extra_margin: int = Form(10),
+    parsing_mode: str = Form("jaw"),
+    left_cheek_width: int = Form(90),
+    right_cheek_width: int = Form(90),
+    fps: int = Form(25),
+    batch_size: int = Form(8),
+    gfpgan_weight: float = Form(0.5),
+):
+    if inference_engine is None:
+        raise HTTPException(status_code=503, detail="Service not ready")
+
+    temp_dir = tempfile.mkdtemp()
+    try:
+        audio_filename = audio.filename or "audio.wav"
+        source_filename = source.filename or "source.png"
+        audio_ext = Path(audio_filename).suffix or ".wav"
+        source_ext = Path(source_filename).suffix or ".png"
+
+        audio_path = os.path.join(temp_dir, f"audio{audio_ext}")
+        source_path = os.path.join(temp_dir, f"source{source_ext}")
+
+        with open(audio_path, "wb") as f:
+            content = await audio.read()
+            f.write(content)
+
+        with open(source_path, "wb") as f:
+            content = await source.read()
+            f.write(content)
+
+        def stream_generator():
+            try:
+                for chunk in inference_engine.generate_stream(
+                    audio_path=audio_path,
+                    video_path=source_path,
+                    enhance=enhance,
+                    bbox_shift=bbox_shift,
+                    extra_margin=extra_margin,
+                    parsing_mode=parsing_mode,
+                    left_cheek_width=left_cheek_width,
+                    right_cheek_width=right_cheek_width,
+                    fps=fps,
+                    batch_size=batch_size,
+                    gfpgan_weight=gfpgan_weight,
+                ):
+                    yield chunk
+            finally:
+                if os.path.exists(temp_dir):
+                    shutil.rmtree(temp_dir)
+
+        return StreamingResponse(
+            stream_generator(),
+            media_type="multipart/x-mixed-replace; boundary=frame"
+        )
+
+    except Exception as e:
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/generate/stream/json")
+async def generate_video_stream_json(request: InferenceRequest):
+    if inference_engine is None:
+        raise HTTPException(status_code=503, detail="Service not ready")
+
+    try:
+        if not os.path.exists(request.audio_path):
+            raise HTTPException(
+                status_code=404, detail=f"Audio file not found: {request.audio_path}"
+            )
+
+        if not os.path.exists(request.video_path):
+            raise HTTPException(
+                status_code=404, detail=f"Source file not found: {request.video_path}"
+            )
+
+        return StreamingResponse(
+            inference_engine.generate_stream(
+                audio_path=request.audio_path,
+                video_path=request.video_path,
+                enhance=request.enhance,
+                bbox_shift=request.bbox_shift,
+                extra_margin=request.extra_margin,
+                parsing_mode=request.parsing_mode,
+                left_cheek_width=request.left_cheek_width,
+                right_cheek_width=request.right_cheek_width,
+                fps=request.fps,
+                batch_size=request.batch_size,
+                gfpgan_weight=request.gfpgan_weight,
+            ),
+            media_type="multipart/x-mixed-replace; boundary=frame"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/download/{filename}")
 async def download_result(filename: str):
     results_dir = "./results"

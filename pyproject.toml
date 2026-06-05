@@ -80,7 +80,6 @@ find-links = ["https://download.openmmlab.com/mmcv/dist/cu118/torch2.0/index.htm
 
 [tool.uv.extra-build-dependencies]
 chumpy = ["pip"]
-mmcv = ["setuptools"]
 
 [[tool.uv.index]]
 name = "pytorch-cu118"
