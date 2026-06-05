@@ -124,7 +124,7 @@ async def generate_video(
     left_cheek_width: int = Form(90),
     right_cheek_width: int = Form(90),
     fps: int = Form(25),
-    batch_size: int = Form(8),
+    batch_size: int = Form(1),
     output_name: Optional[str] = Form(None),
     gfpgan_weight: float = Form(0.5),
 ):
@@ -254,7 +254,7 @@ async def generate_video_stream(
     left_cheek_width: int = Form(90),
     right_cheek_width: int = Form(90),
     fps: int = Form(25),
-    batch_size: int = Form(8),
+    batch_size: int = Form(1),
     gfpgan_weight: float = Form(0.5),
 ):
     if inference_engine is None:

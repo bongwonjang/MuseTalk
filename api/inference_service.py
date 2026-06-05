@@ -148,7 +148,7 @@ class MuseTalkInference:
         left_cheek_width: int = 90,
         right_cheek_width: int = 90,
         fps: int = 25,
-        batch_size: int = 8,
+        batch_size: int = 1,
         gfpgan_weight: float = 0.5,
     ):
         """Internal generator yielding blended BGR frames in real-time."""
@@ -345,7 +345,7 @@ class MuseTalkInference:
         left_cheek_width: int = 90,
         right_cheek_width: int = 90,
         fps: int = 25,
-        batch_size: int = 8,
+        batch_size: int = 1,
         output_name: Optional[str] = None,
         result_dir: str = "./results",
         gfpgan_weight: float = 0.5,
@@ -439,7 +439,7 @@ class MuseTalkInference:
         left_cheek_width: int = 90,
         right_cheek_width: int = 90,
         fps: int = 25,
-        batch_size: int = 8,
+        batch_size: int = 1,
         gfpgan_weight: float = 0.5,
     ):
         """Generator yielding MJPEG multipart chunks in real-time."""

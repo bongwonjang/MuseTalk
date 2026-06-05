@@ -14,7 +14,7 @@ class InferenceRequest(BaseModel):
         default=90, ge=20, le=160, description="Right cheek region width"
     )
     fps: int = Field(default=25, ge=1, le=60, description="Video frames per second")
-    batch_size: int = Field(default=8, ge=1, le=32, description="Inference batch size")
+    batch_size: int = Field(default=1, ge=1, le=32, description="Inference batch size")
     output_name: Optional[str] = Field(default=None, description="Custom output filename")
     gfpgan_weight: float = Field(
         default=0.5, ge=0.0, le=1.0, description="GFPGAN blend weight (0=original, 1=enhanced)"

@@ -35,8 +35,7 @@ def test_stream_json(audio_path, video_path, output_dir="./results/streamed_fram
         "bbox_shift": 0,
         "extra_margin": 10,
         "parsing_mode": "jaw",
-        "fps": 25,
-        "batch_size": 8
+        "fps": 25
     }
     
     url = f"{API_URL}/generate/stream/json"
