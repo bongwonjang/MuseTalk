@@ -60,7 +60,6 @@ scripts/realtime_inference.py
 test_ffmpeg.py
 test_api.py
 inference.sh
-entrypoint.sh
 main.py
 requirements.lock.txt
 
@@ -77,7 +76,6 @@ grok_*.mp4
 LICENSE
 
 # Lock files
-uv.lock
 
 # Docker files (not needed inside container)
 Dockerfile
