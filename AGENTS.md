@@ -25,6 +25,9 @@ This guide is designed for developers and AI agents working on this codebase. It
 *   [docker-compose.yml](file:///C:/Users/muram/Desktop/MuseTalk-API/docker-compose.yml) - Definitions for the API and Gradio container services with multi-GPU deployment support.
 *   [entrypoint.sh](file:///C:/Users/muram/Desktop/MuseTalk-API/entrypoint.sh) - Container startup script that automatically runs the model download check.
 *   [download_models.py](file:///C:/Users/muram/Desktop/MuseTalk-API/download_models.py) - Downloader script resolving weights from HuggingFace and Google Drive.
+*   [test_api.py](file:///C:/Users/muram/Desktop/MuseTalk-API/test_api.py) - Integration test script for validating non-streaming endpoints (`/generate` and `/generate/json`).
+*   [test_stream.py](file:///C:/Users/muram/Desktop/MuseTalk-API/test_stream.py) - Utility for validating visual frame streaming by programmatically parsing boundaries and saving output JPEGs.
+
 
 ---
 

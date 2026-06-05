@@ -26,3 +26,11 @@ This file documents the major milestones, architecture modifications, optimizati
 
 ## 4. Default Model Configuration
 * Configured MuseTalk v1.5 weights (`unet.pth` and `musetalk.json`) as the default checkpoint in `api/inference_service.py` and `app.py`.
+
+---
+
+## 5. Streaming Verification & Utility Integration
+* **Cached Device Alignment**: Validated the device alignment fix (`latent_batch.to(device=self.device)`) for cached latents, correcting a device mismatch runtime crash inside the container.
+* **Streaming Test Utility (`test_stream.py`)**: Authored a standalone validation utility that programmatically requests, decodes, and saves raw MJPEG frames (`multipart/x-mixed-replace`) in real-time, confirming stable 50 FPS generation speeds.
+* **Direct Pipeline Commands**: Formulated CLI command workflows combining `curl` and `ffmpeg` to capture and extract video frames directly in the terminal during streaming.
+
