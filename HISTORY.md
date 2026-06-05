@@ -34,3 +34,10 @@ This file documents the major milestones, architecture modifications, optimizati
 * **Streaming Test Utility (`test_stream.py`)**: Authored a standalone validation utility that programmatically requests, decodes, and saves raw MJPEG frames (`multipart/x-mixed-replace`) in real-time, confirming stable 50 FPS generation speeds.
 * **Direct Pipeline Commands**: Formulated CLI command workflows combining `curl` and `ffmpeg` to capture and extract video frames directly in the terminal during streaming.
 
+---
+
+## 🛠️ Future Roadmap & TODOs
+* **Scale Batch Size to 32**: Increase default batch size to `32` when migrating to higher-end GPUs (e.g., NVIDIA A100 or L40) to maximize throughput.
+* **Implement Request Queue**: Build an API request queue (e.g., using Celery, Redis, or an in-memory queue manager) to serialize inference jobs, ensuring single-concurrency or bounded-concurrency execution to prevent GPU VRAM OOM crashes.
+
+

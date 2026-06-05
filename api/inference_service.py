@@ -268,8 +268,11 @@ class MuseTalkInference:
         mask_list_cycle = mask_list + mask_list[::-1]
         mask_coords_list_cycle = mask_coords_list + mask_coords_list[::-1]
 
-        # 4. UNet model inference
-        print("Starting inference...")
+        # 4. UNet model inference & Blending loop (Batch-by-Batch Streaming)
+        print("Starting inference and blending...")
+        if enhance:
+            self._load_gfpgan()
+
         video_num = len(whisper_chunks)
         device_str = str(self.device)
         gen = datagen(
@@ -280,10 +283,9 @@ class MuseTalkInference:
             device=device_str,
         )
 
-        res_frame_list = []
         total = int(np.ceil(float(video_num) / batch_size))
 
-        for i, (whisper_batch, latent_batch) in enumerate(tqdm(gen, total=total, desc="Inference")):
+        for i, (whisper_batch, latent_batch) in enumerate(tqdm(gen, total=total, desc="Inference & Blending")):
             audio_feature_batch = self.pe(whisper_batch)
             latent_batch = latent_batch.to(device=self.device, dtype=self.weight_dtype)
 
@@ -291,47 +293,45 @@ class MuseTalkInference:
                 latent_batch, self.timesteps, encoder_hidden_states=audio_feature_batch
             ).sample
             recon = self.vae.decode_latents(pred_latents)
-            for res_frame in recon:
-                res_frame_list.append(res_frame)
 
-        # 5. Blending loop
-        print("Blending frames" + (" with GFPGAN enhancement" if enhance else ""))
-        if enhance:
-            self._load_gfpgan()
+            # Process, blend, and yield the current batch of frames immediately
+            for j, res_frame in enumerate(recon):
+                frame_idx = i * batch_size + j
+                if frame_idx >= video_num:
+                    break
 
-        for i, res_frame in enumerate(res_frame_list):
-            bbox = coord_list_cycle[i % len(coord_list_cycle)]
-            ori_frame = frame_list_cycle[i % len(frame_list_cycle)].copy()
-            
-            if bbox == coord_placeholder:
-                yield ori_frame
-                continue
+                bbox = coord_list_cycle[frame_idx % len(coord_list_cycle)]
+                ori_frame = frame_list_cycle[frame_idx % len(frame_list_cycle)].copy()
+                
+                if bbox == coord_placeholder:
+                    yield ori_frame
+                    continue
 
-            x1, y1, x2, y2 = bbox
-            y2 = y2 + extra_margin
-            y2 = min(y2, ori_frame.shape[0])
+                x1, y1, x2, y2 = bbox
+                y2 = y2 + extra_margin
+                y2 = min(y2, ori_frame.shape[0])
 
-            face_crop = res_frame.astype(np.uint8)
-            if enhance:
-                face_crop = self._enhance_face_aligned(face_crop, gfpgan_weight)
+                face_crop = res_frame.astype(np.uint8)
+                if enhance:
+                    face_crop = self._enhance_face_aligned(face_crop, gfpgan_weight)
 
-            try:
-                face_resized = cv2.resize(face_crop, (x2 - x1, y2 - y1))
-            except Exception:
-                yield ori_frame
-                continue
+                try:
+                    face_resized = cv2.resize(face_crop, (x2 - x1, y2 - y1))
+                except Exception:
+                    yield ori_frame
+                    continue
 
-            mask = mask_list_cycle[i % len(mask_list_cycle)]
-            mask_crop_box = mask_coords_list_cycle[i % len(mask_coords_list_cycle)]
+                mask = mask_list_cycle[frame_idx % len(mask_list_cycle)]
+                mask_crop_box = mask_coords_list_cycle[frame_idx % len(mask_coords_list_cycle)]
 
-            if mask is None or mask_crop_box is None:
-                yield ori_frame
-                continue
+                if mask is None or mask_crop_box is None:
+                    yield ori_frame
+                    continue
 
-            combine_frame = get_image_blending(
-                ori_frame, face_resized, [x1, y1, x2, y2], mask, mask_crop_box
-            )
-            yield combine_frame
+                combine_frame = get_image_blending(
+                    ori_frame, face_resized, [x1, y1, x2, y2], mask, mask_crop_box
+                )
+                yield combine_frame
 
     @torch.no_grad()
     def generate(
